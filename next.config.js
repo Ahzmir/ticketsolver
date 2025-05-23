@@ -3,6 +3,13 @@
 const nextConfig = {
     images: {
         domains: ['images.unsplash.com'],
+    },
+    webpack: (config, { isServer, dev }) => {
+        // Suppress the punycode warning
+        config.ignoreWarnings = [
+            { module: /node_modules\/punycode/ }
+        ];
+        return config;
     }
 };
 

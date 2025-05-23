@@ -23,44 +23,33 @@ import {
 import { Badge } from "../ui/badge";
 import { Separator } from "../ui/separator";
 import { Trash2, Edit } from "lucide-react";
-
-interface Ticket {
-  id: string;
-  type: "bullying" | "cafeteria food" | "grade consultation";
-  description: string;
-  status: "open" | "in progress" | "resolved";
-  createdAt: string;
-  updatedAt?: string;
-}
+import { Ticket } from "@/app/types/ticket";
 
 interface TicketDetailProps {
-  ticket?: Ticket;
-  onEdit?: (ticketId: string) => void;
+  ticket: Ticket;
+  onEdit?: (ticket: Ticket) => void;
   onDelete?: (ticketId: string) => void;
   onClose?: () => void;
+  userId: string;
 }
 
 export default function TicketDetail({
-  ticket = {
-    id: "1",
-    type: "bullying",
-    description:
-      "I've been experiencing bullying in the cafeteria during lunch breaks.",
-    status: "open",
-    createdAt: new Date().toISOString(),
-  },
+  ticket,
   onEdit = () => {},
   onDelete = () => {},
   onClose = () => {},
+  userId,
 }: TicketDetailProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const handleEdit = () => {
-    onEdit(ticket.id);
+    onEdit(ticket);
   };
 
   const handleDelete = () => {
-    onDelete(ticket.id);
+    if (ticket._id) {
+      onDelete(ticket._id);
+    }
     setIsDeleteDialogOpen(false);
   };
 
@@ -68,7 +57,7 @@ export default function TicketDetail({
     switch (status) {
       case "open":
         return "bg-yellow-500";
-      case "in progress":
+      case "in-progress":
         return "bg-blue-500";
       case "resolved":
         return "bg-green-500";
@@ -77,17 +66,8 @@ export default function TicketDetail({
     }
   };
 
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "bullying":
-        return "Bullying Report";
-      case "cafeteria food":
-        return "Cafeteria Food Issue";
-      case "grade consultation":
-        return "Grade Consultation";
-      default:
-        return type;
-    }
+  const getComplaintTypeLabel = (type: string) => {
+    return type.charAt(0).toUpperCase() + type.slice(1);
   };
 
   const formatDate = (dateString: string) => {
@@ -108,19 +88,19 @@ export default function TicketDetail({
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-xl font-bold">
-                {getTypeLabel(ticket.type)}
+                {getComplaintTypeLabel(ticket.complaintType)}
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Ticket #{ticket.id}
+                Ticket #{ticket._id}
               </p>
             </div>
             <div className="flex items-center space-x-2">
               <div className="flex items-center">
                 <div
-                  className={`w-2 h-2 rounded-full mr-2 ${getStatusColor(ticket.status)}`}
+                  className={`w-2 h-2 rounded-full mr-2 ${getStatusColor(ticket.status || 'open')}`}
                 ></div>
                 <Badge variant="outline" className="capitalize">
-                  {ticket.status}
+                  {ticket.status || 'open'}
                 </Badge>
               </div>
             </div>
@@ -142,7 +122,7 @@ export default function TicketDetail({
               <h3 className="text-sm font-medium text-muted-foreground">
                 Submitted on
               </h3>
-              <p className="mt-1 text-sm">{formatDate(ticket.createdAt)}</p>
+              <p className="mt-1 text-sm">{ticket.createdAt && formatDate(ticket.createdAt)}</p>
             </div>
 
             {ticket.updatedAt && (

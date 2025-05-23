@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import Link from "next/link";
+import api from "./lib/axios";
 import { Button } from "../app/components/ui/button";
 import { Input } from "../app/components/ui/input";
 import {
@@ -21,48 +22,52 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Basic validation
-    if (!studentId.trim()) {
-      setError("Please enter your Student ID");
-      return;
-    }
-
-    if (!/^\d+$/.test(studentId)) {
-      setError("Student ID must contain only numbers");
-      return;
-    }
-
-    if (!password.trim()) {
-      setError("Please enter your password");
-      return;
-    }
-
+    setIsLoading(true);
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
+      const response = await api.post("/api/auth/login", {
         studentId,
         password,
       });
+      
+      const { token, user, redirectUrl } = response.data;
 
-      const { token } = response.data;
-
-      // Save token locally (can use cookies or context too)
+      // Store token in localStorage for persistence
       localStorage.setItem("token", token);
+      
+      // Store user in sessionStorage for quick access
+      sessionStorage.setItem("user", JSON.stringify(user));
+      
+      // Set user data in cookie with proper expiration
+      const expireDate = new Date();
+      expireDate.setHours(expireDate.getHours() + 24); // 24-hour expiration
+      document.cookie = `user=${encodeURIComponent(JSON.stringify(user))}; path=/; expires=${expireDate.toUTCString()}`;
 
-      // Redirect to dashboard
-      router.push("/dashboard");
+      // Configure axios default headers for future requests
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      // Navigate based on user role
+      window.location.href = redirectUrl;
     } catch (err: any) {
-      if (err.response && err.response.data && err.response.data.message) {
+      console.error("Login error:", err);
+      
+      if (err.response?.data?.message) {
         setError(err.response.data.message);
+      } else if (err.response?.status === 503) {
+        setError("Database connection error. Please try again later.");
+      } else if (err.response?.status === 401) {
+        setError("Invalid credentials. Please check your Student ID and password.");
       } else {
         setError("Login failed. Please try again.");
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -94,40 +99,43 @@ export default function LoginPage() {
                 <Input
                   id="studentId"
                   placeholder="Student ID"
-                  type="text"
                   value={studentId}
                   onChange={(e) => setStudentId(e.target.value)}
-                  className="w-full"
+                  disabled={isLoading}
                 />
               </div>
-              <div className="space-y-2 relative">
-                <Input
-                  id="password"
-                  placeholder="Password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pr-10"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={togglePasswordVisibility}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
+              <div className="space-y-2">
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={togglePasswordVisibility}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
-              <Button type="submit" className="w-full">
-                Login
+              <Button className="w-full" type="submit" disabled={isLoading}>
+                {isLoading ? "Logging in..." : "Login"}
               </Button>
             </div>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-center">
+        <CardFooter className="flex flex-col space-y-4 text-center">
           <p className="text-sm text-muted-foreground">
             Contact administration if you have trouble logging in
           </p>

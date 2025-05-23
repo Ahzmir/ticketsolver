@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { Button } from "../components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import api from "../lib/axios";
 import { useRouter } from "next/navigation";
 
 export default function HistoryPage() {
@@ -13,9 +13,8 @@ export default function HistoryPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchComplaints = async () => {
-      try {
-        const res = await axios.get("http://localhost:5000/api/complaints");
+    const fetchComplaints = async () => {      try {
+        const res = await api.get("/api/complaints");
         setTicketHistory(res.data);
       } catch (err) {
         setError("Failed to load complaints");

@@ -1,24 +1,50 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import axios from "axios";
+import api from "../lib/axios";
+
+interface User {
+  id: string;
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  grade?: string;
+  joinedDate?: string;
+  avatarUrl?: string;
+}
 
 export default function ProfilePage() {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock user data - in a real app, this would come from authentication context
-  const user = {
-    id: "2022303115",
-    name: "Ahzmir de Gracia",
-    email: "ahzmir.degracia@gmail.com",
-    grade: "Junior",
-    joinedDate: "April 2025",
-    avatarUrl: "",
+  useEffect(() => {
+    const userData = sessionStorage.getItem("user");
+    if (userData) {
+      setUser(JSON.parse(userData));
+    } else {
+      router.push("/");
+    }
+    setLoading(false);
+  }, [router]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return <div>User not found</div>;
+  }
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
   return (
@@ -29,95 +55,55 @@ export default function ProfilePage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push("/dashboard")}
-              className="mr-2"
+              onClick={() => router.back()}
+              className="mr-4"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-6 w-6" />
             </Button>
-            <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
+            <h1 className="text-2xl font-bold">Profile</h1>
           </div>
-          <p className="text-muted-foreground">
-            View and manage your account information
-          </p>
         </header>
 
         <main>
-          <Card className="mb-8">
-            <CardHeader className="pb-2">
-              <CardTitle>Personal Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col md:flex-row gap-6 items-start">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={user.avatarUrl} alt={user.name} />
-                  <AvatarFallback className="text-2xl">
-                    {user.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-20 w-20">
+                  {user.avatarUrl && (
+                    <AvatarImage
+                      src={user.avatarUrl}
+                      alt={`${user.firstName} ${user.lastName}`}
+                    />
+                  )}
+                  <AvatarFallback>
+                    {getInitials(user.firstName, user.lastName)}
                   </AvatarFallback>
                 </Avatar>
-
-                <div className="space-y-4 flex-1">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Student ID
-                      </p>
-                      <p>{user.id}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Full Name
-                      </p>
-                      <p>{user.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Email
-                      </p>
-                      <p>{user.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Grade
-                      </p>
-                      <p>{user.grade}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Joined
-                      </p>
-                      <p>{user.joinedDate}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-4">
-                    <Button variant="outline">Edit Profile</Button>
-                  </div>
+                <div>
+                  <CardTitle className="text-2xl">{`${user.firstName} ${user.lastName}`}</CardTitle>
+                  <p className="text-muted-foreground">{user.role}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle>Account Settings</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">
-                    Password
-                  </p>
-                  <Button variant="outline">Change Password</Button>
+                  <h3 className="font-medium">Student ID</h3>
+                  <p className="text-muted-foreground">{user.studentId}</p>
                 </div>
-
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">
-                    Notifications
-                  </p>
-                  <Button variant="outline">Manage Notifications</Button>
+                  <h3 className="font-medium">Email</h3>
+                  <p className="text-muted-foreground">{user.email}</p>
+                </div>
+                {user.grade && (
+                  <div>
+                    <h3 className="font-medium">Grade</h3>
+                    <p className="text-muted-foreground">{user.grade}</p>
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-medium">Account Type</h3>
+                  <p className="text-muted-foreground capitalize">{user.role}</p>
                 </div>
               </div>
             </CardContent>
